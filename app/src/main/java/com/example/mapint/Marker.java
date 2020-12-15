@@ -9,7 +9,7 @@ public class Marker {
     private double lat;
     private double lon;
 
-    public Marker()
+    public Marker(String name, String type, String address, double lat, double lon)
     {
         this.name = name;
         this.type = type;

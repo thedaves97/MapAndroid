@@ -1,5 +1,12 @@
 package com.example.mapint;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
 
@@ -7,6 +14,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import org.json.JSONArray;
@@ -19,8 +28,8 @@ import java.util.ArrayList;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    ArrayList<Marker> marker = new ArrayList<>();
-
+    ArrayList<Marker> markers = new ArrayList<>();
+    int cont = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,18 +73,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             for (int i = 0;i<jArray.length();i++)
             {
                 JSONObject obj = jArray.getJSONObject(i);
-                /*String name = obj.getString("name");
-                String type = obj.getString("type");
-                String add = obj.getString("address");
-                double lat = obj.getDouble("lat");
-                double lon = obj.getDouble("lon");*/
-                Marker m = new Marker();
+
+                Marker m = new Marker("name", "type", "address", 0.0, 0.1);
                 m.setName(obj.getString("name"));
                 m.setType(obj.getString("type"));
                 m.setAddress(obj.getString("address"));
                 m.setLat(obj.getDouble("lat"));
                 m.setLon(obj.getDouble("lon"));
-                marker.add(m);
+                markers.add(m);
 
             }
         } catch (JSONException e) {
@@ -94,24 +99,86 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         double lat;
         double lon;
 
-        /*
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-         */
+
         //CREAZIONE MARKER
-        for (Marker m: marker)
+        for (Marker m: markers)
         {
             lat = m.getLat();
             lon = m.getLon();
+            int path = R.drawable.ic_cocktail;         //INIZIALIZZAZIONE PER NON AVERE ERRORI A RUNTIME
+            type = m.getType();
+            add = m.getAddress();
+
+            if(mMap!=null)
+            {
+                mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                    @Override
+                    public View getInfoWindow(com.google.android.gms.maps.model.Marker marker) {
+                        return null;
+                    }
+
+                    @Override
+                    public View getInfoContents(com.google.android.gms.maps.model.Marker marker) {
+
+                        View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
+
+                        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
+                        TextView name = (TextView) row.findViewById(R.id.name);
+                        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
+                        TextView address = (TextView) row.findViewById(R.id.address);
+                        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID CROWDING
+                        TextView crowding = (TextView) row.findViewById(R.id.crowding);
+
+                        //ASSEGNAZIONE TESTO DA VISUALIZZARE
+                        name.setText("Name: " + markers.get(cont).getName());
+                        address.setText("Address: " + markers.get(cont).getAddress());
+                        crowding.setText("Crowding: High/Medium/Low");
+
+                        cont++;
+
+                        return row;
+
+                    }  //FINE getInfoContent
+
+                }); //FINE setInfoWindowAdapter
+
+            }  //FINE IF
+
+            switch (type)
+            {
+                case "Pub":
+                    path = R.drawable.ic_beer;
+                    break;
+                case "Cocktail bar":
+                    path = R.drawable.ic_cocktail;
+                    break;
+                case "Wine Bar":
+                    path = R.drawable.ic_wine;
+                    break;
+            }
 
             pos = new LatLng(lat, lon);
-            mMap.addMarker(new MarkerOptions().position(pos).title("Name: " + m.getName() + "\nType: " + m.getType() + "\nAddress: " + m.getAddress()));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(15.0f));
+            //mMap.addMarker(new MarkerOptions().position(pos).title("Name: " + m.getName() + "\nType: " + m.getType() + "\nAddress: " + m.getAddress()));
+            mMap.addMarker(new MarkerOptions().position(pos).title(m.getName())
+                    .icon(bitmapDescriptorFromVector(getApplicationContext(), path)));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(25.0f));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-        }
 
+        } //FINE FOR CREAZIONE MARKER
+
+    } //FINE OnMapReady
+
+    private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId)
+    {
+        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+        vectorDrawable.setBounds(0,0, vectorDrawable.getIntrinsicWidth(),vectorDrawable.getIntrinsicHeight());
+        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(bitmap);
+        vectorDrawable.draw(canvas);
+
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
 
     }
+
 }
