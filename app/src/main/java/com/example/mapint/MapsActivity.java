@@ -1,10 +1,14 @@
 package com.example.mapint;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -30,6 +34,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     ArrayList<Marker> markers = new ArrayList<>();
     int cont = 0;
+    private Button button;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +44,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+
+        button = (Button) findViewById(R.id.menu_button);
+        LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
+        li.setBackgroundColor(Color.parseColor("#fbb324"));
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openMenu();
+            }
+        });
+
+
+
+
 
         //LETTURA JSON
         InputStream is = getResources().openRawResource(R.raw.marker);
@@ -89,6 +110,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    public void openMenu() {
+        Intent intent = new Intent(this, Menu.class);
+        startActivity(intent);
+
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -105,20 +132,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         {
             lat = m.getLat();
             lon = m.getLon();
-            int path = R.drawable.ic_cocktail;         //INIZIALIZZAZIONE PER NON AVERE ERRORI A RUNTIME
+
             type = m.getType();
-            add = m.getAddress();
 
             if(mMap!=null)
             {
                 mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
                     @Override
                     public View getInfoWindow(com.google.android.gms.maps.model.Marker marker) {
-                        return null;
-                    }
-
-                    @Override
-                    public View getInfoContents(com.google.android.gms.maps.model.Marker marker) {
 
                         View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
 
@@ -129,14 +150,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID CROWDING
                         TextView crowding = (TextView) row.findViewById(R.id.crowding);
 
+                        //SETTING COLORI TESTO/INFOWINDOW
+                        String cName = markers.get(cont).getName() + " ";
+                        String cAdd = markers.get(cont).getAddress() + " ";
+                        String cCrow = "High/Medium/Low ";
+
+
                         //ASSEGNAZIONE TESTO DA VISUALIZZARE
-                        name.setText("Name: " + markers.get(cont).getName());
-                        address.setText("Address: " + markers.get(cont).getAddress());
-                        crowding.setText("Crowding: High/Medium/Low");
+                        name = setTextAndColor(name, cName, " Name");
+
+                        address = setTextAndColor(address, cAdd, " Address");
+
+                        crowding = setTextAndColor(crowding, cCrow, " Crowding");
 
                         cont++;
 
+                        row.setBackgroundColor(Color.parseColor("#fbb324"));
+
                         return row;
+
+                    }
+
+                    @Override
+                    public View getInfoContents(com.google.android.gms.maps.model.Marker marker) {
+
+                        return null;
 
                     }  //FINE getInfoContent
 
@@ -144,24 +182,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }  //FINE IF
 
-            switch (type)
-            {
-                case "Pub":
-                    path = R.drawable.ic_beer;
-                    break;
-                case "Cocktail bar":
-                    path = R.drawable.ic_cocktail;
-                    break;
-                case "Wine Bar":
-                    path = R.drawable.ic_wine;
-                    break;
-            }
-
             pos = new LatLng(lat, lon);
             //mMap.addMarker(new MarkerOptions().position(pos).title("Name: " + m.getName() + "\nType: " + m.getType() + "\nAddress: " + m.getAddress()));
             mMap.addMarker(new MarkerOptions().position(pos).title(m.getName())
-                    .icon(bitmapDescriptorFromVector(getApplicationContext(), path)));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(25.0f));
+                    .icon(bitmapDescriptorFromVector(getApplicationContext(), setCustomIcon(type))));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(17.0f));
+            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 17.0f));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
 
         } //FINE FOR CREAZIONE MARKER
@@ -179,6 +205,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return BitmapDescriptorFactory.fromBitmap(bitmap);
 
+    }
+
+    public TextView setTextAndColor(TextView tv, String str, String att)
+    {
+        tv.setText(att + ": " + str);
+        tv.setTextColor(Color.parseColor("#000000"));
+
+        return tv;
+    }
+
+    public int setCustomIcon(String type)
+    {
+        int path = R.drawable.ic_cocktail;         //INIZIALIZZAZIONE PER NON AVERE ERRORI A RUNTIME
+
+        switch (type)
+        {
+            case "Pub":
+                path = R.drawable.ic_beer;
+                break;
+            case "Cocktail bar":
+                path = R.drawable.ic_cocktail;
+                break;
+            case "Wine Bar":
+                path = R.drawable.ic_wine;
+                break;
+        }
+        return path;
     }
 
 }
