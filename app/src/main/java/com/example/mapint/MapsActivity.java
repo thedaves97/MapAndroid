@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -32,6 +33,8 @@ import java.util.ArrayList;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    private static final String EXTRA_TEXT = "com.example.mapint.MapsActivity.EXTRA_TEXT";
+
     ArrayList<Marker> markers = new ArrayList<>();
     int cont = 0;
     private Button button;
@@ -49,17 +52,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         button = (Button) findViewById(R.id.menu_button);
         LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
         li.setBackgroundColor(Color.parseColor("#fbb324"));
-
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openMenu();
-            }
-        });
-
-
-
-
 
         //LETTURA JSON
         InputStream is = getResources().openRawResource(R.raw.marker);
@@ -85,7 +77,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         String marker_array = writer.toString();
 
-
         //FETCH JSON
         try {
 
@@ -110,13 +101,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    public void openMenu() {
-        Intent intent = new Intent(this, Menu.class);
-        startActivity(intent);
-
-    }
-
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -125,7 +109,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng pos;
         double lat;
         double lon;
-
 
         //CREAZIONE MARKER
         for (Marker m: markers)
@@ -139,7 +122,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             {
                 mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
                     @Override
-                    public View getInfoWindow(com.google.android.gms.maps.model.Marker marker) {
+                    public View getInfoWindow(com.google.android.gms.maps.model.Marker marker)
+                    {
 
                         View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
 
@@ -155,13 +139,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         String cAdd = markers.get(cont).getAddress() + " ";
                         String cCrow = "High/Medium/Low ";
 
-
                         //ASSEGNAZIONE TESTO DA VISUALIZZARE
                         name = setTextAndColor(name, cName, " Name");
 
                         address = setTextAndColor(address, cAdd, " Address");
 
-                        crowding = setTextAndColor(crowding, cCrow, " Crowding");
+                        setTextAndColor(crowding, cCrow, " Crowding");
 
                         cont++;
 
@@ -190,9 +173,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 17.0f));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
 
+            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
+
+
+                    TextView selectedMarker = (TextView) findViewById(R.id.local_name);
+                    selectedMarker.setText(markers.get(cont).getName());
+                    selectedMarker.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+                    selectedMarker.setTextColor(Color.parseColor("#000000"));
+
+                    final String localName = (String) selectedMarker.getText();
+
+                    button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            openMenu(localName);
+                        }
+                    });
+
+                    return false;
+                }
+            });
+
         } //FINE FOR CREAZIONE MARKER
 
     } //FINE OnMapReady
+
+    //ANDIAMO A DEFINIRE LA PROCEDURA PER APRIRE IL MENU
+    public void openMenu(String localName) {
+        Intent intent = new Intent(this, Menu.class);
+        intent.putExtra("key", localName);
+
+        startActivity(intent);
+
+    }
 
     private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId)
     {
