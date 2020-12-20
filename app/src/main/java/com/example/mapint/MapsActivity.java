@@ -204,7 +204,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void openMenu(String localName) {
         Intent intent = new Intent(this, Menu.class);
         intent.putExtra("key", localName);
-
         startActivity(intent);
 
     }
