@@ -23,10 +23,6 @@ public class Menu extends AppCompatActivity {
 
     private TextView mTextViewResult;
     private RequestQueue mQueue;
-    private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-    private RecyclerView.LayoutManager layoutManager;               //Allinea gli elementi nella lista
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,14 +30,34 @@ public class Menu extends AppCompatActivity {
         setContentView(R.layout.activity_menu);
 
         mTextViewResult = findViewById(R.id.text_view_result);
-        Button birre = findViewById(R.id.beer);
+
+        final Button birre = findViewById(R.id.beer);
+        final Button vini = findViewById(R.id.wine);
+        final Button cocktail = findViewById(R.id.cocktail);
 
         mQueue = Volley.newRequestQueue(this);
 
         birre.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                jsonParse();
+                String n = birre.getText().toString();
+                jsonParse(n);
+            }
+        });
+
+        vini.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String n = vini.getText().toString();
+                jsonParse(n);
+            }
+        });
+
+        cocktail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String n = cocktail.getText().toString();
+                jsonParse(n);
             }
         });
 
@@ -55,10 +71,10 @@ public class Menu extends AppCompatActivity {
 
     }  //FINE ON CREATE
 
-    private void jsonParse()
+    private void jsonParse(String buttonName)
     {
         //Si usa il 10.0.2.2 così facciamo riferimento all'IP del computer su cui l'emulatore sta girando
-        String url = "http://10.0.2.2:1111/drink/cocktail";
+        String url = setUrl(buttonName);
 
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
             @Override
@@ -67,10 +83,9 @@ public class Menu extends AppCompatActivity {
 
                     for(int i=0; i< response.length(); i++)
                     {
-                        JSONObject beer = response.getJSONObject(i);
-                        String drinkName = beer.getString("name");
-                        double price = beer.getDouble("price");
-                        //items.add(new Item(drinkName, price));
+                        JSONObject drink = response.getJSONObject(i);
+                        String drinkName = drink.getString("name");
+                        double price = drink.getDouble("price");
 
                         mTextViewResult.append("\n" + drinkName + " " + price + " €");
                     }
@@ -104,5 +119,24 @@ public class Menu extends AppCompatActivity {
         { complete = defaultName.replace("name", name); }
 
         return complete;
+    }
+
+    public String setUrl(String buttonName)
+    {
+        String url = "";
+        switch (buttonName)
+        {
+            case "Beers":
+                url = "http://10.0.2.2:1111/drink/beers";
+                break;
+            case "Wines":
+                url = "http://10.0.2.2:1111/drink/wine";
+                break;
+            case "Cocktails":
+                url = "http://10.0.2.2:1111/drink/cocktail";
+                break;
+        }   //FINE SWITCH
+
+    return url;
     }
 }
