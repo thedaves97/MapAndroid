@@ -23,7 +23,6 @@ public class Menu extends AppCompatActivity {
 
     private TextView mTextViewResult;
     private RequestQueue mQueue;
-    ArrayList<Item> items = new ArrayList<>();
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;               //Allinea gli elementi nella lista
@@ -33,8 +32,6 @@ public class Menu extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
-
-        ArrayList<Item> items = new ArrayList<>();
 
         mTextViewResult = findViewById(R.id.text_view_result);
         Button birre = findViewById(R.id.beer);
@@ -73,7 +70,7 @@ public class Menu extends AppCompatActivity {
                         JSONObject beer = response.getJSONObject(i);
                         String drinkName = beer.getString("name");
                         double price = beer.getDouble("price");
-                        items.add(new Item(drinkName, price));
+                        //items.add(new Item(drinkName, price));
 
                         mTextViewResult.append("\n" + drinkName + " " + price + " €");
                     }
