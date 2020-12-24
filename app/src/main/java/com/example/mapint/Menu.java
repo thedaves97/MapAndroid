@@ -88,12 +88,12 @@ public class Menu extends AppCompatActivity {
                         double price = drink.getDouble("price");
 
                         mTextViewResult.append("\n" + drinkName + " " + price + " €");
+
                     }
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             }
         }, new Response.ErrorListener() {
             @Override
