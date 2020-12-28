@@ -46,12 +46,12 @@
                         android:textColor="@android:color/black"
                         android:textSize="20sp"
                         app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent"
-                        android:layout_marginTop="256dp" android:layout_marginEnd="162dp"
+                        android:layout_marginTop="264dp" android:layout_marginEnd="162dp"
                         android:layout_marginRight="162dp" app:layout_constraintEnd_toEndOf="parent"
                         android:layout_marginLeft="160dp" android:layout_marginStart="160dp"
                         android:gravity="center"
                         android:text="Some drink"
-                        app:layout_constraintHorizontal_bias="0.504"/>
+                        app:layout_constraintHorizontal_bias="1.0"/>
                 <Button
                         android:id="@+id/beer"
                         android:layout_width="wrap_content"

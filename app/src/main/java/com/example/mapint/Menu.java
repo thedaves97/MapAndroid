@@ -1,5 +1,6 @@
 package com.example.mapint;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -73,13 +74,18 @@ public class Menu extends AppCompatActivity {
 
     private void jsonParse(String buttonName)
     {
+        String localName ="";
+        localName = getLocalNamePassed();
+
         //Si usa il 10.0.2.2 così facciamo riferimento all'IP del computer su cui l'emulatore sta girando
-        String url = setUrl(buttonName);
+        String url = setUrl(buttonName, localName);
 
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
+
             @Override
             public void onResponse(JSONArray response) {
                 try {
+
 
                     for(int i=0; i< response.length(); i++)
                     {
@@ -88,6 +94,7 @@ public class Menu extends AppCompatActivity {
                         double price = drink.getDouble("price");
 
                         mTextViewResult.append("\n" + drinkName + " " + price + " €");
+
 
                     }
 
@@ -105,15 +112,29 @@ public class Menu extends AppCompatActivity {
         mQueue.add(request);
     }
 
-    public String setWelcomeText(String defaultName)
+    public String getLocalNamePassed()
     {
-        String name = "";
-        String complete = "";
+        String localName = "";
 
         Bundle extras = getIntent().getExtras();
 
         if(extras!=null)
+        { localName = extras.getString("key"); }
+
+        return localName;
+    }
+
+    public String setWelcomeText(String defaultName)
+    {
+        String name = "";
+        String complete = "";
+        /*
+        Bundle extras = getIntent().getExtras();
+
+        if(extras!=null)
         { name = extras.getString("key"); }
+         */
+        name = getLocalNamePassed();
 
         if(!defaultName.equals(""))
         { complete = defaultName.replace("name", name); }
@@ -121,22 +142,24 @@ public class Menu extends AppCompatActivity {
         return complete;
     }
 
-    public String setUrl(String buttonName)
+    public String setUrl(String buttonName, String localName)
     {
         String url = "";
         switch (buttonName)
         {
             case "Beers":
-                url = "http://10.0.2.2:1111/drink/beers";
+                url = "http://10.0.2.2:1111/api/v1/specificdrinktype?nameLocale="+ localName +"&typeBevanda=beer";
+                Log.i("url", url);
                 break;
             case "Wines":
-                url = "http://10.0.2.2:1111/drink/wine";
+                url = "http://10.0.2.2:1111/api/v1/bevanda";
                 break;
             case "Cocktails":
-                url = "http://10.0.2.2:1111/drink/cocktail";
+                url = "http://10.0.2.2:1111/api/v1/bevanda";
                 break;
         }   //FINE SWITCH
 
     return url;
     }
+
 }

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
@@ -15,6 +16,12 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -29,6 +36,7 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -36,22 +44,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String EXTRA_TEXT = "com.example.mapint.MapsActivity.EXTRA_TEXT";
 
     ArrayList<Marker> markers = new ArrayList<>();
+    //ArrayList<Marker> temp = new ArrayList<>();
+    String mt;
     int cont = 0;
+    private RequestQueue mQueue;
     private Button button;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        //Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        mQueue = Volley.newRequestQueue(this);
 
-        button = (Button) findViewById(R.id.menu_button);
-        LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
+        button = findViewById(R.id.menu_button);
+        LinearLayout li = findViewById(R.id.bottom);
         li.setBackgroundColor(Color.parseColor("#fbb324"));
+
+        /*
+        //Collections.copy(markers, jsonParseLocali());
+        //jsonParseLocali();
+        ArrayList<Marker> mk = new ArrayList<>();
+        //STAMPA NEL LOG PER VERIFICARE LA LETTURA DEI MARKER
+        for (Marker m: markers)
+        {
+            Log.i("da markers",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());
+        }
+        */
 
         //LETTURA JSON
         InputStream is = getResources().openRawResource(R.raw.marker);
@@ -86,7 +109,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             {
                 JSONObject obj = jArray.getJSONObject(i);
 
-                Marker m = new Marker("name", "type", "address", 0.0, 0.1);
+                Marker m = new Marker(1,"name", "type", "address", 0.0, 0.1);
+                m.setId(obj.getInt("id"));
                 m.setName(obj.getString("name"));
                 m.setType(obj.getString("type"));
                 m.setAddress(obj.getString("address"));
@@ -95,14 +119,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 markers.add(m);
 
             }
+
+            for (int i=0; i<markers.size();i++)
+            {
+                Log.i("prova", "val " + " " + markers.get(i));
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-    }
+    }           //FINE ONCREATE
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
         mMap = googleMap;
 
         String name, type, add;
@@ -115,7 +146,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         {
             lat = m.getLat();
             lon = m.getLon();
-
             type = m.getType();
 
             if(mMap!=null)
@@ -137,6 +167,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         //SETTING COLORI TESTO/INFOWINDOW
                         String cName = markers.get(cont).getName() + " ";
                         String cAdd = markers.get(cont).getAddress() + " ";
+                        //String cName = temp.get(cont).getName() + " ";
+                        //String cAdd = temp.get(cont).getAddress() + " ";
                         String cCrow = "High/Medium/Low ";
 
                         //ASSEGNAZIONE TESTO DA VISUALIZZARE
@@ -151,20 +183,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         row.setBackgroundColor(Color.parseColor("#fbb324"));
 
                         return row;
-
                     }
 
                     @Override
                     public View getInfoContents(com.google.android.gms.maps.model.Marker marker) {
 
                         return null;
-
                     }  //FINE getInfoContent
 
                 }); //FINE setInfoWindowAdapter
 
             }  //FINE IF
 
+            //pos = new LatLng(45.0646803, 7.6955659);    //Prova esecuzione dopo GET request
             pos = new LatLng(lat, lon);
             //mMap.addMarker(new MarkerOptions().position(pos).title("Name: " + m.getName() + "\nType: " + m.getType() + "\nAddress: " + m.getAddress()));
             mMap.addMarker(new MarkerOptions().position(pos).title(m.getName())
@@ -176,8 +207,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
                 @Override
                 public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
-
-
+                    //Controllare se il get(cont) serve o no
                     TextView selectedMarker = (TextView) findViewById(R.id.local_name);
                     selectedMarker.setText(markers.get(cont).getName());
                     selectedMarker.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
@@ -205,7 +235,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Intent intent = new Intent(this, Menu.class);
         intent.putExtra("key", localName);
         startActivity(intent);
-
     }
 
     private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId)
@@ -218,7 +247,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         vectorDrawable.draw(canvas);
 
         return BitmapDescriptorFactory.fromBitmap(bitmap);
-
     }
 
     public TextView setTextAndColor(TextView tv, String str, String att)
@@ -235,17 +263,89 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         switch (type)
         {
-            case "Pub":
+            case "pub":
                 path = R.drawable.ic_beer;
                 break;
-            case "Cocktail bar":
+            case "cocktail bar":
                 path = R.drawable.ic_cocktail;
                 break;
-            case "Wine Bar":
+            case "wine Bar":
                 path = R.drawable.ic_wine;
                 break;
         }
         return path;
     }
 
+    public void jsonParseLocali()
+    {
+        String url = "http://10.0.2.2:1111/api/v1/locale";
+        //final ArrayList<Marker> temp = new ArrayList<>();
+
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
+            @Override
+            public void onResponse(JSONArray response)
+            {
+                try {
+
+                    for(int i=0; i< response.length(); i++)
+                    {
+                        Marker m = new Marker(0,"name", "type", "address", 0.0, 0.0);
+                        JSONObject locale = response.getJSONObject(i);
+
+                        int id = locale.getInt("id");
+                        String name = locale.getString("name");
+                        String address = locale.getString("address");
+                        String type = locale.getString("type");
+                        double lat = locale.getDouble("lat");
+                        double lon = locale.getDouble("lon");
+
+                        m.setId(locale.getInt("id"));
+                        m.setName(locale.getString("name"));
+                        m.setAddress(locale.getString("address"));
+                        m.setType(locale.getString("type"));
+                        m.setLat(locale.getDouble("lat"));
+                        m.setLon(locale.getDouble("lon"));
+                        Log.i("parse",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());
+                        //Log.i("temp", String.valueOf(temp.get(i)));
+                        //temp.add(m);
+                        //markers.add(m);
+                    }
+                    /*
+                    for (Marker m: temp)
+                    {   Log.i("each",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
+                     */
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+            }
+        });
+
+        mQueue.add(request);
+        /*
+        for (Marker m: temp)
+        {   Log.i("outscope",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
+         */
+
+    }     //FINE JSONPARSELOCALI
+
+    /*
+    public void setList(ArrayList<Marker> temp)
+    {
+        ArrayList<Marker> mk = new ArrayList<>();
+        Collections.copy(temp, mk);
+
+        getList(mk);
+    }
+
+    public ArrayList<Marker> getList(ArrayList<Marker> mk)
+    {
+        return mk;
+    }
+     */
 }
