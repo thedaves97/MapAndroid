@@ -17,6 +17,12 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -40,6 +46,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<Marker> markers = new ArrayList<>();
     int cont = 0;
     private Button button;
+    private RequestQueue mQueue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,59 +57,75 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        mQueue = Volley.newRequestQueue(this);
 
         button = (Button) findViewById(R.id.menu_button);
         LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
         li.setBackgroundColor(Color.parseColor("#fbb324"));
 
-        //LETTURA JSON
-        InputStream is = getResources().openRawResource(R.raw.marker);
-        Writer writer = new StringWriter();
-        char[] buffer = new char[1024];
+        /*
+         *READ JSON VIA URL
+         */
+        jsonParseLocali();
 
-        try {
-            Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+    }       //onCreate() ends
 
-            int n;
-            while((n = reader.read(buffer)) !=-1)
+    private void jsonParseLocali() {
+        String url = "http://10.0.2.2:1111/api/v1/locale";
+        //String url = "http://192.168.1.157:1111/api/v1/locale";
+        //final ArrayList<Marker> temp = new ArrayList<>();
+
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
+            @Override
+            public void onResponse(JSONArray response)
             {
-                writer.write(buffer, 0, n);
-            } //FINE WHILE
+                try {
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            is.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String marker_array = writer.toString();
+                    for(int i=0; i< response.length(); i++)
+                    {
+                        Marker m = new Marker(0,"name", "type", "address", 0.0, 0.0);
+                        JSONObject locale = response.getJSONObject(i);
 
-        //FETCH JSON
-        try {
+                        int id = locale.getInt("id");
+                        String name = locale.getString("name");
+                        String address = locale.getString("address");
+                        String type = locale.getString("type");
+                        double lat = locale.getDouble("lat");
+                        double lon = locale.getDouble("lon");
 
-            JSONObject json = new JSONObject(marker_array);
-            JSONArray jArray =  json.getJSONArray("markers");
-            for (int i = 0;i<jArray.length();i++)
-            {
-                JSONObject obj = jArray.getJSONObject(i);
+                        m.setId(locale.getInt("id"));
+                        m.setName(locale.getString("name"));
+                        m.setAddress(locale.getString("address"));
+                        m.setType(locale.getString("type"));
+                        m.setLat(locale.getDouble("lat"));
+                        m.setLon(locale.getDouble("lon"));
+                        //Log.i("parse",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());
 
-                Marker m = new Marker(0,"name", "type", "address", 0.0, 0.1);
-                m.setId(obj.getInt("id"));
-                m.setName(obj.getString("name"));
-                m.setType(obj.getString("type"));
-                m.setAddress(obj.getString("address"));
-                m.setLat(obj.getDouble("lat"));
-                m.setLon(obj.getDouble("lon"));
-                markers.add(m);
+                        markers.add(m);
+                    }
 
+                    for (Marker m: markers)
+                    {   Log.i("each",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+            }
+        });
 
-    }
+        mQueue.add(request);
+        /*
+        for (Marker m: temp)
+        {   Log.i("outscope",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
+         */
+
+    }     //FINE JSONPARSELOCALI// jsonParseLocali method ends
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -135,7 +158,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mapCenter = new LatLng(latCenter, lngCenter);
             mMap.moveCamera((CameraUpdateFactory.newLatLngZoom(mapCenter, zoomLevel)));
 
-            final int finalI1 = i;
             mMap.setOnMarkerClickListener(this);
             mMap.setInfoWindowAdapter(this);
             mMap.setOnMapClickListener(this);
