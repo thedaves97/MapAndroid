@@ -130,15 +130,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        Log.i("control", "sono in on map ready");
         String name, type, add;
         LatLng pos;
         double lat;
         double lon;
+        Log.i("control", "ho creato le variabili");
+
+        int cicli;
+        cicli = markers.size();
+        Log.i("control", "var cicli creata");
+
+        if(markers.isEmpty())
+        {
+            Log.i("control", "Vuota ktm");
+        }
 
         //CREAZIONE MARKER
-        for (int i=0; i<markers.size();i++)
+        for(int i=0; i<=8;i++)
         {
+            Log.i("control", "sto creando marker");
             lat = markers.get(i).getLat();
             lon = markers.get(i).getLon();
             type = markers.get(i).getType();
@@ -276,13 +287,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         switch (type)
         {
-            case "Pub":
+            case "pub":
                 path = R.drawable.ic_beer;
                 break;
-            case "Cocktail bar":
+            case "cocktail bar":
                 path = R.drawable.ic_cocktail;
                 break;
-            case "Wine Bar":
+            case "wine Bar":
                 path = R.drawable.ic_wine;
                 break;
         }
