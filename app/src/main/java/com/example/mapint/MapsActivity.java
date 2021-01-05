@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
@@ -13,6 +14,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
@@ -36,7 +38,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, GoogleMap.InfoWindowAdapter, GoogleMap.OnMapClickListener {
 
@@ -47,9 +51,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     int cont = 0;
     private Button button;
     private RequestQueue mQueue;
+    boolean isReady = false;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.i("time", "create "+java.time.Clock.systemUTC().instant());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -59,40 +66,101 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mQueue = Volley.newRequestQueue(this);
 
+
         button = (Button) findViewById(R.id.menu_button);
         LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
         li.setBackgroundColor(Color.parseColor("#fbb324"));
 
-        /*
-         *READ JSON VIA URL
-         */
-        jsonParseLocali();
+
 
     }       //onCreate() ends
 
-    private void jsonParseLocali() {
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+
+        mMap = googleMap;
+        /*
+         *READ JSON VIA URL
+         */
+        jsonParseLocali(new VolleyResponseListener() {
+            @Override
+            public void onError(String message) {
+                Log.i("list", "Something wrong");
+            }
+
+            @Override
+            public void onResponse(ArrayList<Marker> listOfMarker) {
+                Log.i("list", "array" + listOfMarker.size());
+
+                Log.i("control", "sono in on map ready");
+                String name, type, add;
+                LatLng pos;
+                double lat, lon;
+                Log.i("control", "ho creato le variabili");
+
+                if(listOfMarker.isEmpty())
+                {
+                    Log.i("control", "Vuota ktm");
+                }
+
+                //CREAZIONE MARKER
+                for(int i=0; i<listOfMarker.size();i++)
+                {
+                    Log.i("control", "sto creando marker");
+                    lat = listOfMarker.get(i).getLat();
+                    lon = listOfMarker.get(i).getLon();
+                    type = listOfMarker.get(i).getType();
+
+                    pos = new LatLng(lat, lon);
+                    mMap.addMarker(new MarkerOptions().position(pos).title(listOfMarker.get(i).getName())
+                            .icon(bitmapDescriptorFromVector(getApplicationContext(), setCustomIcon(type))));
+
+                } //FINE FOR CREAZIONE MARKER
+            }
+        });
+
+            Log.i("time", "ready "+java.time.Clock.systemUTC().instant());
+
+        mMap.setOnMarkerClickListener(this);
+        mMap.setInfoWindowAdapter(this);
+        mMap.setOnMapClickListener(this);
+        setMapCenter();
+
+    } // OnMapReady ends
+
+    public interface VolleyResponseListener {
+        void onError(String message);
+
+        void onResponse(ArrayList<Marker> listOfMarker);
+    }
+
+    private void jsonParseLocali(final VolleyResponseListener listener)
+    {
+        Log.i("time", "parse "+java.time.Clock.systemUTC().instant());
+        Log.i("parse", "Parsing locali");
         String url = "http://10.0.2.2:1111/api/v1/locale";
         //String url = "http://192.168.1.157:1111/api/v1/locale";
-        //final ArrayList<Marker> temp = new ArrayList<>();
+        ArrayList<Marker> al = new ArrayList<>();
 
-        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response)
             {
                 try {
-
+                    LatLng pos;
                     for(int i=0; i< response.length(); i++)
                     {
                         Marker m = new Marker(0,"name", "type", "address", 0.0, 0.0);
                         JSONObject locale = response.getJSONObject(i);
-
+                        /*
                         int id = locale.getInt("id");
                         String name = locale.getString("name");
                         String address = locale.getString("address");
                         String type = locale.getString("type");
                         double lat = locale.getDouble("lat");
                         double lon = locale.getDouble("lon");
-
+                        */
                         m.setId(locale.getInt("id"));
                         m.setName(locale.getString("name"));
                         m.setAddress(locale.getString("address"));
@@ -100,82 +168,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         m.setLat(locale.getDouble("lat"));
                         m.setLon(locale.getDouble("lon"));
                         //Log.i("parse",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());
-
-                        markers.add(m);
+                        al.add(m);
                     }
 
-                    for (Marker m: markers)
+                    for (Marker m: al)
                     {   Log.i("each",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
-
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                listener.onResponse(al);
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
+                listener.onError(error.toString());
             }
         });
 
         mQueue.add(request);
-        /*
-        for (Marker m: temp)
-        {   Log.i("outscope",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());    }
-         */
 
-    }     //FINE JSONPARSELOCALI// jsonParseLocali method ends
+        Log.i("time", "parse fine"+java.time.Clock.systemUTC().instant());
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        Log.i("control", "sono in on map ready");
-        String name, type, add;
-        LatLng pos;
-        double lat;
-        double lon;
-        Log.i("control", "ho creato le variabili");
+    }    // jsonParseLocali method ends
 
-        int cicli;
-        cicli = markers.size();
-        Log.i("control", "var cicli creata");
-
-        if(markers.isEmpty())
-        {
-            Log.i("control", "Vuota ktm");
-        }
-
-        //CREAZIONE MARKER
-        for(int i=0; i<=8;i++)
-        {
-            Log.i("control", "sto creando marker");
-            lat = markers.get(i).getLat();
-            lon = markers.get(i).getLon();
-            type = markers.get(i).getType();
-
-            pos = new LatLng(lat, lon);
-            //mMap.addMarker(new MarkerOptions().position(pos).title("Name: " + m.getName() + "\nType: " + m.getType() + "\nAddress: " + m.getAddress()));
-            mMap.addMarker(new MarkerOptions().position(pos).title(markers.get(i).getName())
-                    .icon(bitmapDescriptorFromVector(getApplicationContext(), setCustomIcon(type))));
-
-            //SETTING FOCUS TO CITY CENTER
-            float zoomLevel = 16.0f;
-            LatLng mapCenter;
-            //Mole Antonelliana 45.0690113  7.6910275
-            //Porta Nuova/San Salvario 45.062055    7.6763373
-            //Piazza Vittorio Veneto
-            double latCenter = 45.0647992, lngCenter = 7.6930788;
-            mapCenter = new LatLng(latCenter, lngCenter);
-            mMap.moveCamera((CameraUpdateFactory.newLatLngZoom(mapCenter, zoomLevel)));
-
-            mMap.setOnMarkerClickListener(this);
-            mMap.setInfoWindowAdapter(this);
-            mMap.setOnMapClickListener(this);
-
-        } //FINE FOR CREAZIONE MARKER
-
-    } //FINE OnMapReady
+    private void setMapCenter() {
+        //SETTING FOCUS TO CITY CENTER
+        float zoomLevel = 16.0f;
+        LatLng mapCenter;
+        //Mole Antonelliana 45.0690113  7.6910275
+        //Porta Nuova/San Salvario 45.062055    7.6763373
+        //Piazza Vittorio Veneto
+        double latCenter = 45.0647992, lngCenter = 7.6930788;
+        mapCenter = new LatLng(latCenter, lngCenter);
+        mMap.moveCamera((CameraUpdateFactory.newLatLngZoom(mapCenter, zoomLevel)));
+    }
 
     @Override
     public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
@@ -207,7 +235,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public View getInfoWindow(com.google.android.gms.maps.model.Marker marker) {
-
+        Log.i("infowin", "sono stato cliccato quindi devo apparire");
         String title = marker.getTitle();
 
         View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
@@ -239,8 +267,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         }
-
+        Log.i("infowin", "il mio lavoro è finito");
         return row;
+
     }
 
     @Override
@@ -293,7 +322,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             case "cocktail bar":
                 path = R.drawable.ic_cocktail;
                 break;
-            case "wine Bar":
+            case "wine bar":
                 path = R.drawable.ic_wine;
                 break;
         }
