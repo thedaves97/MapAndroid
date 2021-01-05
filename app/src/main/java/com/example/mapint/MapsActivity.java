@@ -116,6 +116,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .icon(bitmapDescriptorFromVector(getApplicationContext(), setCustomIcon(type))));
 
                 } //FINE FOR CREAZIONE MARKER
+                markers = listOfMarker;
             }
         });
 
