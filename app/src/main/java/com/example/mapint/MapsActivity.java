@@ -25,6 +25,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.mapint.Interfaces.CrowdingVolleyResponseListener;
+import com.example.mapint.Interfaces.VolleyResponseListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -37,10 +39,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.*;
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, GoogleMap.InfoWindowAdapter, GoogleMap.OnMapClickListener {
 
@@ -48,10 +47,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String EXTRA_TEXT = "com.example.mapint.MapsActivity.EXTRA_TEXT";
 
     ArrayList<Marker> markers = new ArrayList<>();
+    ArrayList<CrowdingDto> crowdingList = new ArrayList<>();
     int cont = 0;
     private Button button;
     private RequestQueue mQueue;
+    private RequestQueue crowQueue;
     boolean isReady = false;
+    String crowdingValue, finalCrowdingValue;
+    CrowdingDto objInfoWindow = new CrowdingDto(0,0);
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -65,13 +68,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         mQueue = Volley.newRequestQueue(this);
-
+        crowQueue = Volley.newRequestQueue(this);
 
         button = (Button) findViewById(R.id.menu_button);
         LinearLayout li = (LinearLayout) findViewById(R.id.bottom);
         li.setBackgroundColor(Color.parseColor("#fbb324"));
-
-
 
     }       //onCreate() ends
 
@@ -91,17 +92,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onResponse(ArrayList<Marker> listOfMarker) {
                 Log.i("list", "array" + listOfMarker.size());
-
                 Log.i("control", "sono in on map ready");
+
                 String name, type, add;
                 LatLng pos;
                 double lat, lon;
                 Log.i("control", "ho creato le variabili");
 
                 if(listOfMarker.isEmpty())
-                {
-                    Log.i("control", "Vuota ktm");
-                }
+                {  Log.i("control", "Vuota ktm");  }
 
                 //CREAZIONE MARKER
                 for(int i=0; i<listOfMarker.size();i++)
@@ -120,6 +119,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+            getCrowding(new CrowdingVolleyResponseListener() {
+                @Override
+                public void onError(String message) {
+                    Log.i("list", "Something wrong");
+                }
+
+                @Override
+                public void onResponse(ArrayList<CrowdingDto> cDto) {
+                    crowdingList = cDto;
+                    Log.i("crow", "la lista è " + crowdingList);
+                    Log.i("crow", "la lista è " + cDto);
+                }
+            });
+
             Log.i("time", "ready "+java.time.Clock.systemUTC().instant());
 
         mMap.setOnMarkerClickListener(this);
@@ -129,18 +142,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     } // OnMapReady ends
 
-    public interface VolleyResponseListener {
-        void onError(String message);
+    private void getCrowding(final CrowdingVolleyResponseListener listener)
+    {
+        ArrayList<CrowdingDto> cDto = new ArrayList<>();
+        //String url = "http://10.0.2.2:1111/api/v1/getDrinkQuantityToDo/"+id;
+        String url = "http://192.168.1.157:1111/api/v1/getDrinkQuantityToDo";
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response)
+                    {
 
-        void onResponse(ArrayList<Marker> listOfMarker);
+                        try {
+                            CrowdingDto obj = new CrowdingDto(0, 0);
+                            for(int i=0; i<response.length(); i++)
+                            {
+                                JSONObject dtoCrowding = response.getJSONObject(i);
+                                obj.setSum(dtoCrowding.getLong("sum"));
+                                obj.setId_locale(dtoCrowding.getInt("id_local"));
+                                cDto.add(obj);
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        listener.onResponse(cDto);
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                listener.onError(error.toString());
+            }
+        });
+        crowQueue.add(request);
     }
 
     private void jsonParseLocali(final VolleyResponseListener listener)
     {
         Log.i("time", "parse "+java.time.Clock.systemUTC().instant());
         Log.i("parse", "Parsing locali");
-        String url = "http://10.0.2.2:1111/api/v1/locale";
-        //String url = "http://192.168.1.157:1111/api/v1/locale";
+        String url = "http://10.0.2.2:1111/api/v1/getAllLocals";
+        //String url = "http://192.168.1.157:1111/api/v1/getAllLocals";
         ArrayList<Marker> al = new ArrayList<>();
 
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
@@ -149,26 +192,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onResponse(JSONArray response)
             {
                 try {
-                    LatLng pos;
-                    for(int i=0; i< response.length(); i++)
+                    for(int i=0; i<response.length(); i++)
                     {
                         Marker m = new Marker(0,"name", "type", "address", 0.0, 0.0);
                         JSONObject locale = response.getJSONObject(i);
-                        /*
-                        int id = locale.getInt("id");
-                        String name = locale.getString("name");
-                        String address = locale.getString("address");
-                        String type = locale.getString("type");
-                        double lat = locale.getDouble("lat");
-                        double lon = locale.getDouble("lon");
-                        */
+
                         m.setId(locale.getInt("id"));
                         m.setName(locale.getString("name"));
                         m.setAddress(locale.getString("address"));
                         m.setType(locale.getString("type"));
                         m.setLat(locale.getDouble("lat"));
                         m.setLon(locale.getDouble("lon"));
-                        //Log.i("parse",  "--> " + m.getId() + " " + m.getName() + " " + m.getAddress() + " " + m.getType() + " " + m.getLat() + " " + m.getLon());
                         al.add(m);
                     }
 
@@ -189,7 +223,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         mQueue.add(request);
-
         Log.i("time", "parse fine"+java.time.Clock.systemUTC().instant());
 
     }    // jsonParseLocali method ends
@@ -205,12 +238,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapCenter = new LatLng(latCenter, lngCenter);
         mMap.moveCamera((CameraUpdateFactory.newLatLngZoom(mapCenter, zoomLevel)));
     }
-
+//SELECT SUM(numerosity), id_locale FROM `order_to_do` GROUP BY id_locale
     @Override
     public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
         TextView selectedMarkerLocalName = findViewById(R.id.local_name);
 
         final String localName = marker.getTitle();
+
         selectedMarkerLocalName.setText(localName);
 
         TextView selectedMarker = (TextView) findViewById(R.id.local_name);
@@ -238,39 +272,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public View getInfoWindow(com.google.android.gms.maps.model.Marker marker) {
         Log.i("infowin", "sono stato cliccato quindi devo apparire");
         String title = marker.getTitle();
+        int cCrow = 0;
 
         View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
-
-        for (int i=0;i<markers.size();i++)
+        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
+        TextView name = (TextView) row.findViewById(R.id.name);
+        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
+        TextView address = (TextView) row.findViewById(R.id.address);
+        //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID CROWDING
+        TextView crowding = (TextView) row.findViewById(R.id.crowding);
+        int i=0;
+        int j=0;
+        for (i=0;i<markers.size();i++)
         {
+            for(j=0;j<crowdingList.size();j++)
+            {
+                if (markers.get(i).getId() == crowdingList.get(j).getId_locale())
+                {
+                    Log.i("crow", "i index " + i);
+                    Log.i("crow", "j index " + j);
+                    Log.i("crow", "id locale" + crowdingList.get(j).getId_locale());
+
+                    cCrow = (int) crowdingList.get(j).getSum();
+                    Log.i("crow", "val cCrow " + cCrow);
+                }
+            }
+
+            setTextAndColor(crowding, String.valueOf(cCrow), " Crowding");
+
             if(title.equals(markers.get(i).getName()))
             {
-                //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
-                TextView name = (TextView) row.findViewById(R.id.name);
-                //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
-                TextView address = (TextView) row.findViewById(R.id.address);
-                //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID CROWDING
-                TextView crowding = (TextView) row.findViewById(R.id.crowding);
-
                 //SETTING COLORI TESTO/INFOWINDOW
                 String cName = markers.get(i).getName() + " ";
                 //Log.i("ciclo", "val="+cont);
                 String cAdd = markers.get(i).getAddress() + " ";
-                String cCrow = "High/Medium/Low ";
 
                 //ASSEGNAZIONE TESTO DA VISUALIZZARE
                 name = setTextAndColor(name, cName, " Name");
 
                 address = setTextAndColor(address, cAdd, " Address");
 
-                setTextAndColor(crowding, cCrow, " Crowding");
                 row.setBackgroundColor(Color.parseColor("#fbb324"));
-
             }
-        }
+        }  //fine for iniziale
         Log.i("infowin", "il mio lavoro è finito");
-        return row;
 
+        return row;
     }
 
     @Override
@@ -278,8 +325,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     } //FINE getInfoContent
 
-    public void bindInfoWindowToMarker()
-    {}
 
     //ANDIAMO A DEFINIRE LA PROCEDURA PER APRIRE IL MENU
     public void openMenu(String localName) {
@@ -329,5 +374,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         return path;
     }
-
 }
