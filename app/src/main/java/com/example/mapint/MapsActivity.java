@@ -287,6 +287,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String title = marker.getTitle();
         int crow = 0;
         String cCrow = null;
+        int waitTime = 0;
 
         View row = getLayoutInflater().inflate(R.layout.custom_infowindow, null);
         //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID ADDRESS
@@ -295,6 +296,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         TextView address = (TextView) row.findViewById(R.id.address);
         //PRENDIAMO DAL LAYOUT LA TEXT VIEW CON ID CROWDING
         TextView crowding = (TextView) row.findViewById(R.id.crowding);
+        TextView wait = row.findViewById(R.id.waiting_time);
 
         for (int i=0;i<markers.size();i++)
         {
@@ -322,6 +324,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 address = setTextAndColor(address, cAdd, " Address");
 
                 setTextAndColor(crowding, cCrow, " Crowding");
+
+                waitTime = getWaitInfoWindow(crow);
+                setTextAndColor(wait, String.valueOf(waitTime), " Waiting time");
+
 
                 row.setBackgroundColor(Color.parseColor("#fbb324"));
             }
@@ -361,7 +367,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public TextView setTextAndColor(TextView tv, String str, String att)
     {
-        tv.setText(att + ": " + str);
+        if(att.equals(" Waiting time"))
+            tv.setText(att + ": " + str + " min");
+        else
+            tv.setText(att + ": " + str);
+
         tv.setTextColor(Color.parseColor("#000000"));
 
         return tv;
@@ -398,4 +408,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return cCrow;
     }
+
+    public int getWaitInfoWindow(int crow)
+    {
+        int wait = 0;
+
+        if(crow <=2)
+            wait = 0;
+        else if(crow >2 && crow <=7)
+            wait = 2;
+        else if(crow >7 && crow <=12)
+            wait = 5;
+        else if(crow >12 && crow <=18)
+            wait = 10;
+        else if(crow >18 && crow <=25)
+            wait = 15;
+        else
+            wait = 20;
+
+        return wait;
+    }
+
 }
