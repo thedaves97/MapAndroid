@@ -48,13 +48,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     ArrayList<Marker> markers = new ArrayList<>();
     ArrayList<CrowdingDto> crowdingList = new ArrayList<>();
-    int cont = 0;
     private Button button;
     private RequestQueue mQueue;
     private RequestQueue crowQueue;
-    boolean isReady = false;
-    String crowdingValue, finalCrowdingValue;
-    CrowdingDto objInfoWindow = new CrowdingDto(0,0);
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -102,7 +98,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if(listOfMarker.isEmpty())
                 {  Log.i("control", "Vuota ktm");  }
 
-                //CREAZIONE MARKER
+                //Adding MARKER
                 for(int i=0; i<listOfMarker.size();i++)
                 {
                     Log.i("control", "sto creando marker");
@@ -114,7 +110,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.addMarker(new MarkerOptions().position(pos).title(listOfMarker.get(i).getName())
                             .icon(bitmapDescriptorFromVector(getApplicationContext(), setCustomIcon(type))));
 
-                } //FINE FOR CREAZIONE MARKER
+                }
                 markers = listOfMarker;
             }
         });
@@ -147,6 +143,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.i("crow + list", " la lista contiene i valori " + crowdingList);
 
     } // OnMapReady ends
+
+    //------------------------------------------------------------------------------------------------------------//
 
     private void getCrowding(final CrowdingVolleyResponseListener listener)
     {
@@ -187,8 +185,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
         crowQueue.add(request);
     }
-
-
 
     private void jsonParseLocali(final VolleyResponseListener listener)
     {
@@ -251,7 +247,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapCenter = new LatLng(latCenter, lngCenter);
         mMap.moveCamera((CameraUpdateFactory.newLatLngZoom(mapCenter, zoomLevel)));
     }
-//SELECT SUM(numerosity), id_locale FROM `order_to_do` GROUP BY id_locale
+
     @Override
     public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
         TextView selectedMarkerLocalName = findViewById(R.id.local_name);
@@ -301,14 +297,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         for (int i=0;i<markers.size();i++)
         {
             if (title.equals(markers.get(i).getName())) {
-
-                try {
-                    crow = (int) crowdingList.get(markers.get(i).getId()-1).getSum();
-                }
+                try
+                {   crow = (int) crowdingList.get(markers.get(i).getId()-1).getSum();   }
                 catch (IndexOutOfBoundsException e)
-                {
-                    crow = 0;
-                }
+                {   crow = 0;   }
                 cCrow = setCrowdingInfoWinfow(crow);
                 Log.i("val crow", "val infow " + markers.get(i).getCrowding());
                 //Log.i("val info", "lettura " + crowdingList.get(markers.get(i).getId()-1).getSum());
